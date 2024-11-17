@@ -1,6 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Allow cleartext traffic globally for testing or specific DNS services -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- Use system CA certificates -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Specific configurations for DNS servers and domains -->
     <domain-config cleartextTrafficPermitted="true">
+        <!-- Allow OpenDNS -->
+        <domain includeSubdomains="true">opendns.com</domain>
+        <domain includeSubdomains="true">208.67.222.222</domain>
+
+        <!-- Allow Cloudflare DNS -->
+        <domain includeSubdomains="true">cloudflare-dns.com</domain>
         <domain includeSubdomains="true">1.1.1.1</domain>
+
+        <!-- Allow Google Public DNS -->
+        <domain includeSubdomains="true">google.com</domain>
+        <domain includeSubdomains="true">8.8.8.8</domain>
+
+        <!-- Allow Quad9 DNS -->
+        <domain includeSubdomains="true">quad9.net</domain>
+        <domain includeSubdomains="true">9.9.9.9</domain>
+    </domain-config>
+
+    <!-- Additional rules for handling encrypted DNS (DoH/DoT) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">dns.google</domain>
+        <domain includeSubdomains="true">dns.quad9.net</domain>
+        <domain includeSubdomains="true">doh.opendns.com</domain>
     </domain-config>
 </network-security-config>
