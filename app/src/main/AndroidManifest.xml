@@ -3,15 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Required Permissions -->
-<!--    <uses-permission android:name="android.permission.BIND_VPN_SERVICE"-->
-<!--        tools:ignore="ProtectedPermissions" />-->
+    <uses-permission android:name="android.permission.BIND_VPN_SERVICE"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 
     <!-- Optional Permissions -->
-    <!-- These may be needed if your app needs to query or interact with installed apps -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
     <application
@@ -30,7 +29,7 @@
         <service
             android:name=".MyVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
@@ -46,7 +45,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Optional: Ensure the app's foreground service works well on modern Android versions -->
+        <!-- Ensure the app's foreground service works well -->
         <meta-data
             android:name="android.support.FOREGROUND_SERVICE"
             android:value="true" />

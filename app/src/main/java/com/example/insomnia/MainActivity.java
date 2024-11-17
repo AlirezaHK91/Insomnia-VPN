@@ -6,139 +6,93 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.VpnService;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
-
-import androidx.appcompat.app.AppCompatActivity;
+import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = "MainActivity";
     private static final int VPN_REQUEST_CODE = 100;
 
-    private TextView vpnStatusTextView;
-    private TextView dnsResultTextView;
-    private Button toggleVpnButton;
-
-    private boolean isVpnConnected = false;
-
-    private BroadcastReceiver vpnStatusReceiver;
-    private DnsResolver dnsResolver;
+    private TextView statusTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        vpnStatusTextView = findViewById(R.id.vpnStatusTextView);
-        dnsResultTextView = findViewById(R.id.dnsResultTextView);
-        toggleVpnButton = findViewById(R.id.toggleVpnButton);
+        Button startVpnButton = findViewById(R.id.startVpnButton);
+        Button stopVpnButton = findViewById(R.id.stopVpnButton);
+        statusTextView = findViewById(R.id.statusTextView);
 
-        dnsResolver = new DnsResolver();
+        // Start VPN
+        startVpnButton.setOnClickListener(v -> startVpn());
 
-        toggleVpnButton.setOnClickListener(v -> {
-            if (isVpnConnected) {
-                stopVpnService();
-            } else {
-                requestVpnPermission();
-            }
-        });
-
-        vpnStatusReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String status = intent.getStringExtra(MyVpnService.VPN_STATUS_KEY);
-                if (MyVpnService.VPN_STATUS_SUCCESS.equals(status)) {
-                    isVpnConnected = true;
-                    updateUi("VPN Connected", "Disconnect VPN");
-
-                    // Test DNS connectivity with a list of domains
-                    String[] testDomains = {
-                            "1.1.1.1",        // Cloudflare
-                            "8.8.8.8",        // Google
-                            "9.9.9.9",        // Quad9
-                            "opendns.com",    // OpenDNS
-                            "cloudflare-dns.com"
-                    };
-
-                    for (String domain : testDomains) {
-                        resolveDomain(domain);
-                    }
-                } else if (MyVpnService.VPN_STATUS_FAILURE.equals(status)) {
-                    isVpnConnected = false;
-                    updateUi("VPN Disconnected", "Connect VPN");
-                    dnsResultTextView.setText(""); // Clear DNS results on disconnection
-                }
-            }
-        };
-
-        IntentFilter filter = new IntentFilter(MyVpnService.VPN_STATUS_INTENT);
-        ContextCompat.registerReceiver(this, vpnStatusReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
-
-        Intent vpnIntent = new Intent(this, MyVpnService.class);
-        startService(vpnIntent);
+        // Stop VPN
+        stopVpnButton.setOnClickListener(v -> stopVpn());
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (vpnStatusReceiver != null) {
-            unregisterReceiver(vpnStatusReceiver);
-        }
-    }
-
-    private void requestVpnPermission() {
+    private void startVpn() {
         Intent intent = VpnService.prepare(this);
         if (intent != null) {
+            Log.d(TAG, "Requesting VPN permission");
             startActivityForResult(intent, VPN_REQUEST_CODE);
         } else {
-            startVpnService();
+            Log.d(TAG, "VPN permission already granted");
+            onActivityResult(VPN_REQUEST_CODE, RESULT_OK, null);
         }
+    }
+
+    private void stopVpn() {
+        Log.d(TAG, "Stopping VPN service");
+        stopService(new Intent(this, MyVpnService.class));
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == VPN_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                startVpnService();
-            } else {
-                updateUi("VPN Permission Denied", "Connect VPN");
-            }
+        if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
+            Log.d(TAG, "Starting VPN service");
+            Intent intent = new Intent(this, MyVpnService.class);
+            startService(intent);
+        } else {
+            Log.e(TAG, "VPN permission denied");
+            Toast.makeText(this, "VPN permission denied", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void startVpnService() {
-        Intent vpnIntent = new Intent(this, MyVpnService.class);
-        startService(vpnIntent);
-        updateUi("Connecting to VPN...", "Disconnect VPN");
+    @Override
+    protected void onResume() {
+        super.onResume();
+        IntentFilter filter = new IntentFilter(MyVpnService.VPN_STATUS_BROADCAST);
+        ContextCompat.registerReceiver(
+                this,
+                vpnStatusReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+        );
     }
 
-    private void stopVpnService() {
-        Intent vpnIntent = new Intent(this, MyVpnService.class);
-        stopService(vpnIntent);
-        isVpnConnected = false;
-        updateUi("VPN Disconnected", "Connect VPN");
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(vpnStatusReceiver);
     }
 
-    private void updateUi(String status, String buttonText) {
-        vpnStatusTextView.setText(status);
-        toggleVpnButton.setText(buttonText);
-    }
-
-    private void resolveDomain(String domain) {
-        dnsResultTextView.setText("Resolving " + domain + "...");
-
-        dnsResolver.resolveDomain(domain, new DnsResolver.DnsCallback() {
-            @Override
-            public void onSuccess(String response) {
-                runOnUiThread(() -> dnsResultTextView.setText("Resolved IP: " + response));
+    private final BroadcastReceiver vpnStatusReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (MyVpnService.VPN_STATUS_BROADCAST.equals(intent.getAction())) {
+                String status = intent.getStringExtra(MyVpnService.VPN_STATUS_KEY);
+                Log.d(TAG, "VPN Status: " + status);
+                Toast.makeText(context, status, Toast.LENGTH_SHORT).show();
+                statusTextView.setText(status);
             }
-
-            @Override
-            public void onFailure(String error) {
-                runOnUiThread(() -> dnsResultTextView.setText("DNS Error: " + error));
-            }
-        });
-    }
+        }
+    };
 }

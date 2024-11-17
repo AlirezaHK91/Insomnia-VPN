@@ -5,28 +5,32 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- VPN Status -->
     <TextView
-        android:id="@+id/vpnStatusTextView"
-        android:layout_width="match_parent"
+        android:id="@+id/statusTextView"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="VPN Status: Not connected"
+        android:layout_gravity="center"
+        android:text="VPN Status: Disconnected"
         android:textSize="18sp"
-        android:gravity="center"
         android:layout_marginBottom="16dp" />
 
     <Button
-        android:id="@+id/toggleVpnButton"
+        android:id="@+id/startVpnButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Connect VPN"
+        android:background="@android:color/holo_blue_light"
         android:layout_gravity="center"
         android:layout_marginBottom="16dp" />
 
-    <TextView
-        android:id="@+id/dnsResultTextView"
-        android:layout_width="match_parent"
+    <Button
+        android:id="@+id/stopVpnButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="DNS Result: Not resolved"
-        android:textSize="18sp"
-        android:gravity="center" />
+        android:text="Disconnect VPN"
+        android:background="@android:color/holo_red_light"
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp" />
+
 </LinearLayout>
